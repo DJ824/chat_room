@@ -24,7 +24,7 @@ public:
     chat_server(boost::asio::io_context& io_contex, int port);
     void start_accept();
     void handle_client(const std::shared_ptr<boost::asio::basic_stream_socket<tcp>> socket_ptr);
-    void broadcast_message(const std::string& message);
+    void broadcast_message(const std::string &message, const std::shared_ptr<tcp::socket>& sender);
     void remove_client(std::shared_ptr<tcp::socket> socket);
 
 };

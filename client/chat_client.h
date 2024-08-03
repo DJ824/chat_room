@@ -16,6 +16,7 @@ private:
 
     // used to handle async operations
     boost::asio::io_context& io_context_;
+    //std::string last_send_message_;
 
     tcp::socket socket_;
     boost::asio::streambuf read_buffer_;

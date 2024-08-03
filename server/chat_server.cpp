@@ -29,10 +29,8 @@ void chat_server::start_accept() {
 
 void chat_server::handle_client(const std::shared_ptr<boost::asio::basic_stream_socket<tcp>> socket_ptr) {
     try {
-
         boost::asio::streambuf buffer;
         std::string message;
-
 
         while (true) {
             boost::asio::read_until(*socket_ptr, buffer, '\n');
@@ -45,11 +43,8 @@ void chat_server::handle_client(const std::shared_ptr<boost::asio::basic_stream_
             }
 
             if (!message.empty()) {
-                std::cout << "recieved: " << message << std::endl;
-                message += "\n";
-
-                broadcast_message(message);
-
+                std::cout << "received: " << message << std::endl;
+                broadcast_message(message, socket_ptr);
             }
 
             if (message == "exit") {
@@ -60,26 +55,28 @@ void chat_server::handle_client(const std::shared_ptr<boost::asio::basic_stream_
     catch (const boost::system::system_error& e) {
         std::cerr << "boost error: " << e.what() << std::endl;
     }
-
     catch (const std::exception& e) {
         std::cerr << "exception in client handler: " << e.what() << std::endl;
-        remove_client(socket_ptr);
     }
 
     std::cout << "client disconnected" << std::endl;
     remove_client(socket_ptr);
 }
 
-void chat_server::broadcast_message(const std::string &message) {
+void chat_server::broadcast_message(const std::string &message, const std::shared_ptr<tcp::socket>& sender) {
     std::lock_guard<std::mutex> lock(clients_mutex_);
 
     for (auto it = clients_.begin(); it != clients_.end();) {
-        boost::system::error_code ec;
-        boost::asio::write(**it, boost::asio::buffer(message), ec);
+        if (*it != sender) {
+            boost::system::error_code ec;
+            boost::asio::write(**it, boost::asio::buffer(message + "\n"), ec);
 
-        if (ec) {
-            std::cerr << "error broadcasting to client: " << ec.message() << std::endl;
-            it = clients_.erase(it);
+            if (ec) {
+                std::cerr << "error broadcasting to client: " << ec.message() << std::endl;
+                it = clients_.erase(it);
+            } else {
+                ++it;
+            }
         } else {
             ++it;
         }
